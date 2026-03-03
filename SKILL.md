@@ -1,13 +1,13 @@
 ---
 name: rr
-description: "GLM-5 코드 리뷰. 작업 후 변경사항을 GLM-5로 깊이 있게 검토. /rr 또는 'GLM 리뷰' 요청 시 사용."
+description: "코드 리뷰. 작업 후 변경사항을 Z.AI 모델로 깊이 있게 검토. /rr 또는 'GLM 리뷰' 요청 시 사용. (기본: glm-4.7-flash 무료)"
 allowed-tools: [Bash, Read, Edit, Glob, Grep]
 argument-hint: "review mode or custom instructions (예: 'pr', 'staged', '보안 집중')"
 ---
 
-# /rr - GLM-5 Code Review
+# /rr - Z.AI Code Review (무료)
 
-GLM-5 모델로 현재 변경사항을 깊이 있게 코드 리뷰한다.
+Z.AI 모델로 현재 변경사항을 깊이 있게 코드 리뷰한다. (기본: glm-4.7-flash, GLM-5는 /rrr)
 
 ## 사용법
 
