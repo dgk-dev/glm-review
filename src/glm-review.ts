@@ -14,6 +14,7 @@ import { join } from "node:path";
 
 interface CliOptions {
   mode: "uncommitted" | "staged" | "pr" | "commit";
+  model: string;
   ref: string;
   base: string;
   thinking: boolean;
@@ -30,7 +31,7 @@ interface FileChange {
 // ─── 상수 ─────────────────────────────────────────────────────────────────────
 
 const API_URL = "https://api.z.ai/api/coding/paas/v4/chat/completions";
-const MODEL = "glm-5";
+const DEFAULT_MODEL = "glm-4.7-flash";
 const MAX_FILE_CHARS = 50_000;
 const TIMEOUT_MS = 120_000;
 const CHARS_PER_TOKEN = 3.5;
@@ -90,6 +91,7 @@ function loadEnvLocal(): void {
 function parseArgs(argv: string[]): CliOptions {
   const opts: CliOptions = {
     mode: "uncommitted",
+    model: DEFAULT_MODEL,
     ref: "HEAD",
     base: "main",
     thinking: true,
@@ -111,6 +113,9 @@ function parseArgs(argv: string[]): CliOptions {
         break;
       case "--base":
         opts.base = argv[++i];
+        break;
+      case "--model":
+        opts.model = argv[++i];
         break;
       case "--no-thinking":
         opts.thinking = false;
@@ -146,7 +151,7 @@ function parseArgs(argv: string[]): CliOptions {
 
 function printHelp(): void {
   console.log(`
-glm-review — GLM-5 코드 리뷰 CLI
+glm-review — Z.AI 코드 리뷰 CLI
 
 사용법:
   glm-review [options] [custom-instructions]
@@ -157,6 +162,9 @@ glm-review — GLM-5 코드 리뷰 CLI
                        staged       git diff --cached
                        pr           git diff <base>...HEAD
                        commit       마지막 커밋 리뷰
+  --model <name>     모델 선택 (기본: glm-4.7-flash)
+                       glm-4.7-flash  무료, 200K context
+                       glm-5          유료, 200K context, 더 깊은 리뷰
   --ref <hash>       특정 커밋 해시 (--mode commit과 함께)
   --base <branch>    base branch (기본: main)
   --no-thinking      thinking mode 비활성화
@@ -295,6 +303,7 @@ function splitDiffByFile(diff: string): Map<string, string> {
 async function streamReview(
   messages: { role: string; content: string }[],
   thinking: boolean,
+  model: string,
 ): Promise<void> {
   const apiKey = process.env.ZAI_API_KEY;
   if (!apiKey) {
@@ -306,7 +315,7 @@ async function streamReview(
   const timeoutId = setTimeout(() => controller.abort(), TIMEOUT_MS);
 
   const body: Record<string, unknown> = {
-    model: MODEL,
+    model,
     messages,
     stream: true,
     temperature: 0.3,
@@ -416,14 +425,14 @@ async function streamReview(
 
 // ─── --health 명령 ────────────────────────────────────────────────────────────
 
-async function runHealth(): Promise<void> {
+async function runHealth(model: string): Promise<void> {
   const apiKey = process.env.ZAI_API_KEY;
   if (!apiKey) {
     console.error("❌ ZAI_API_KEY 없음");
     process.exit(1);
   }
   console.log(`✅ ZAI_API_KEY 존재 (길이: ${apiKey.length})`);
-  console.log(`🔌 GLM-5 API 연결 테스트 중...`);
+  console.log(`🔌 ${model} API 연결 테스트 중...`);
 
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 15_000);
@@ -437,7 +446,7 @@ async function runHealth(): Promise<void> {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: MODEL,
+        model,
         messages: [{ role: "user", content: "say hi" }],
         stream: false,
         max_tokens: 10,
@@ -591,7 +600,7 @@ async function reviewChunked(
     ];
 
     process.stdout.write(`\n## 청크 ${i + 1}/${chunks.length}\n\n`);
-    await streamReview(messages, opts.thinking);
+    await streamReview(messages, opts.thinking, opts.model);
     process.stdout.write("\n");
   }
 }
@@ -611,7 +620,7 @@ async function main(): Promise<void> {
   }
 
   if (opts.health) {
-    await runHealth();
+    await runHealth(opts.model);
     return;
   }
 
@@ -668,7 +677,7 @@ async function main(): Promise<void> {
   const estimatedTokens = estimateTokens(SYSTEM_PROMPT + userContent);
   if (estimatedTokens > MAX_INPUT_TOKENS) {
     const modeLabel = modeLabels[opts.mode] ?? opts.mode;
-    console.error(`\n🔍 GLM-5 코드 리뷰 시작 — ${modeLabel}`);
+    console.error(`\n🔍 ${opts.model} 코드 리뷰 시작 — ${modeLabel}`);
     if (changes.length > 0) {
       const added = changes.filter((c) => c.status === "A").length;
       const modified = changes.filter((c) => c.status === "M").length;
@@ -693,7 +702,7 @@ async function main(): Promise<void> {
 
   // 헤더 출력
   const modeLabel = modeLabels[opts.mode] ?? opts.mode;
-  console.error(`\n🔍 GLM-5 코드 리뷰 시작 — ${modeLabel}`);
+  console.error(`\n🔍 ${opts.model} 코드 리뷰 시작 — ${modeLabel}`);
   if (changes.length > 0) {
     const added = changes.filter((c) => c.status === "A").length;
     const modified = changes.filter((c) => c.status === "M").length;
@@ -702,7 +711,7 @@ async function main(): Promise<void> {
   }
   console.error(`💭 Thinking: ${opts.thinking ? "활성화" : "비활성화"}\n`);
 
-  await streamReview(messages, opts.thinking);
+  await streamReview(messages, opts.thinking, opts.model);
 
   // 마지막 줄바꿈
   process.stdout.write("\n");

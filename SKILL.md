@@ -54,8 +54,10 @@ glm-review --mode staged "타입 안전성 집중"
 **실행 파라미터 매핑** (사용자 인자 → CLI 플래그):
 - `staged` → `--mode staged`
 - `pr` → `--mode pr`
+- `glm-5` 또는 `glm5` → `--model glm-5` (유료, 더 깊은 리뷰)
 - 그 외 텍스트 → positional 인자로 전달 (따옴표로 감싸기)
 - 빠른 리뷰 원할 시 → `--no-thinking` 추가 (thinking mode 비활성화, 속도 향상)
+- 기본 모델: glm-4.7-flash (무료)
 
 ### 3. 백그라운드 실행 패턴 (필수)
 

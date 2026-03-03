@@ -62,6 +62,7 @@ glm-review --mode staged            # staged만
 glm-review --mode pr                # main 대비 PR
 glm-review --mode commit --ref abc  # 특정 커밋
 glm-review "보안 취약점 집중"         # 커스텀 지시
+glm-review --model glm-5            # GLM-5로 더 깊은 리뷰 (유료)
 glm-review --no-thinking            # 빠른 리뷰 (thinking 비활성화)
 glm-review --health                 # API 연결 확인
 ```
@@ -100,7 +101,7 @@ $env:ZAI_API_KEY = 'your-api-key'          # Windows PowerShell
 
 - **런타임**: Node.js v22+ (TypeScript 네이티브 실행 via `--experimental-strip-types`)
 - **의존성**: ZERO (순수 Node.js 내장 API — fetch, fs, child_process)
-- **모델**: GLM-5 (200K context, Thinking mode)
+- **모델**: GLM-4.7-Flash (기본, 무료) / GLM-5 (`--model glm-5`, 유료)
 - **API**: Z.AI Coding Plan 전용 엔드포인트
 
 ## 리뷰 철학
