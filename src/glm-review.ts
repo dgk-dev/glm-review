@@ -33,6 +33,8 @@ const API_URL = "https://api.z.ai/api/coding/paas/v4/chat/completions";
 const MODEL = "glm-5";
 const MAX_FILE_CHARS = 50_000;
 const TIMEOUT_MS = 120_000;
+const CHARS_PER_TOKEN = 3.5;
+const MAX_INPUT_TOKENS = 190_000;
 
 const SYSTEM_PROMPT = `당신은 10년 경력의 시니어 풀스택 엔지니어이자 코드 리뷰 전문가입니다.
 아래 코드 변경사항을 철저히 리뷰하세요.
@@ -272,6 +274,23 @@ function readProjectContext(): string {
   return contextParts.join("\n\n");
 }
 
+// ─── 토큰 추정 + 청크 분할 ──────────────────────────────────────────────────
+
+function estimateTokens(text: string): number {
+  return Math.ceil(text.length / CHARS_PER_TOKEN);
+}
+
+function splitDiffByFile(diff: string): Map<string, string> {
+  const result = new Map<string, string>();
+  const parts = diff.split(/^(?=diff --git )/m);
+  for (const part of parts) {
+    if (!part.trim()) continue;
+    const match = part.match(/^diff --git a\/.+ b\/(.+)/);
+    if (match) result.set(match[1], part);
+  }
+  return result;
+}
+
 // ─── SSE 스트리밍 파싱 ────────────────────────────────────────────────────────
 
 async function streamReview(
@@ -445,6 +464,139 @@ async function runHealth(): Promise<void> {
   }
 }
 
+// ─── 청크 분할 리뷰 (토큰 초과 시) ──────────────────────────────────────────
+
+async function reviewChunked(
+  opts: CliOptions,
+  diff: string,
+  changes: FileChange[],
+  projectContext: string,
+): Promise<void> {
+  const diffByFile = splitDiffByFile(diff);
+
+  // 파일별 페이로드 구성
+  const payloads: { path: string; diff: string; content: string; tokens: number }[] = [];
+
+  for (const change of changes) {
+    const fileDiff = diffByFile.get(change.path) ?? "";
+    diffByFile.delete(change.path);
+    let content = "";
+    if (change.status !== "D" && existsSync(change.path)) {
+      try {
+        let raw = readFileSync(change.path, "utf-8");
+        if (raw.length > MAX_FILE_CHARS) {
+          raw = raw.slice(0, MAX_FILE_CHARS) + "\n... (잘림: 50K 제한)";
+        }
+        const label = change.status === "A" ? "신규 파일" : "수정된 파일";
+        content = `### ${change.path} [${label}]\n\`\`\`\n${raw}\n\`\`\``;
+      } catch {
+        // 무시
+      }
+    }
+    payloads.push({
+      path: change.path,
+      diff: fileDiff,
+      content,
+      tokens: estimateTokens(fileDiff + content),
+    });
+  }
+
+  // changes에 없는 diff 파일 포함 (edge case)
+  for (const [path, fileDiff] of diffByFile) {
+    payloads.push({ path, diff: fileDiff, content: "", tokens: estimateTokens(fileDiff) });
+  }
+
+  // 토큰 예산 계산
+  const baseTokens =
+    estimateTokens(SYSTEM_PROMPT) +
+    estimateTokens(projectContext) +
+    estimateTokens(opts.customInstructions) +
+    1000;
+  const budget = MAX_INPUT_TOKENS - baseTokens;
+
+  // 파일을 청크로 그룹핑
+  const chunks: (typeof payloads)[] = [];
+  let currentChunk: typeof payloads = [];
+  let currentTokens = 0;
+
+  for (const payload of payloads) {
+    let p = payload;
+
+    // 단일 파일이 예산 초과 시 — 파일 내용 제거, diff 자르기
+    if (p.tokens > budget) {
+      const maxChars = Math.floor(budget * CHARS_PER_TOKEN);
+      if (p.diff.length > maxChars) {
+        p = { ...p, diff: p.diff.slice(0, maxChars) + "\n... (diff 잘림)", content: "" };
+      } else {
+        p = { ...p, content: "" };
+      }
+      p.tokens = estimateTokens(p.diff + p.content);
+    }
+
+    if (currentTokens + p.tokens > budget && currentChunk.length > 0) {
+      chunks.push(currentChunk);
+      currentChunk = [];
+      currentTokens = 0;
+    }
+
+    currentChunk.push(p);
+    currentTokens += p.tokens;
+  }
+  if (currentChunk.length > 0) chunks.push(currentChunk);
+
+  const modeLabels: Record<string, string> = {
+    uncommitted: "스테이징되지 않은 변경사항 (git diff HEAD)",
+    staged: "스테이징된 변경사항 (git diff --cached)",
+    pr: `PR 변경사항 (git diff ${opts.base}...HEAD)`,
+    commit: `커밋 리뷰 (${opts.ref})`,
+  };
+
+  console.error(`📦 ${chunks.length}개 청크로 분할 리뷰 시작\n`);
+
+  for (let i = 0; i < chunks.length; i++) {
+    const chunk = chunks[i];
+    const fileList = chunk.map((p) => p.path);
+    console.error(`━━━ 청크 ${i + 1}/${chunks.length} (${chunk.length}개 파일) ━━━`);
+    for (const f of fileList) console.error(`  · ${f}`);
+
+    let userContent = `## 리뷰 대상\n${modeLabels[opts.mode] ?? opts.mode}\n`;
+    userContent += `\n**[청크 ${i + 1}/${chunks.length}]**\n파일: ${fileList.join(", ")}\n\n`;
+
+    if (projectContext) {
+      userContent += `## 프로젝트 컨텍스트\n${projectContext}\n\n`;
+    }
+
+    const chunkDiff = chunk
+      .map((p) => p.diff)
+      .filter(Boolean)
+      .join("\n");
+    if (chunkDiff) {
+      userContent += `## git diff\n\`\`\`diff\n${chunkDiff}\n\`\`\`\n`;
+    }
+
+    const chunkContents = chunk
+      .map((p) => p.content)
+      .filter(Boolean)
+      .join("\n\n");
+    if (chunkContents) {
+      userContent += `\n## 변경된 파일 전체 내용\n${chunkContents}\n`;
+    }
+
+    if (opts.customInstructions) {
+      userContent += `\n## 추가 지시사항\n${opts.customInstructions}\n`;
+    }
+
+    const messages = [
+      { role: "system", content: SYSTEM_PROMPT },
+      { role: "user", content: userContent },
+    ];
+
+    process.stdout.write(`\n## 청크 ${i + 1}/${chunks.length}\n\n`);
+    await streamReview(messages, opts.thinking);
+    process.stdout.write("\n");
+  }
+}
+
 // ─── 메인 ─────────────────────────────────────────────────────────────────────
 
 async function main(): Promise<void> {
@@ -511,6 +663,28 @@ async function main(): Promise<void> {
 
   if (opts.customInstructions) {
     userContent += `\n## 추가 지시사항\n${opts.customInstructions}\n`;
+  }
+
+  // 토큰 한계 확인 — 초과 시 파일별 청크 분할 리뷰
+  const estimatedTokens = estimateTokens(SYSTEM_PROMPT + userContent);
+  if (estimatedTokens > MAX_INPUT_TOKENS) {
+    const modeLabel = modeLabels[opts.mode] ?? opts.mode;
+    console.error(`\n🔍 GLM-5 코드 리뷰 시작 — ${modeLabel}`);
+    if (changes.length > 0) {
+      const added = changes.filter((c) => c.status === "A").length;
+      const modified = changes.filter((c) => c.status === "M").length;
+      const deleted = changes.filter((c) => c.status === "D").length;
+      console.error(
+        `📁 변경 파일: ${changes.length}개 (추가 ${added}, 수정 ${modified}, 삭제 ${deleted})`,
+      );
+    }
+    console.error(`💭 Thinking: ${opts.thinking ? "활성화" : "비활성화"}`);
+    console.error(
+      `⚠️  토큰 초과 (~${Math.round(estimatedTokens / 1000)}K > ${MAX_INPUT_TOKENS / 1000}K) — 청크 분할 리뷰\n`,
+    );
+    await reviewChunked(opts, diff, changes, projectContext);
+    process.stdout.write("\n");
+    return;
   }
 
   const messages = [

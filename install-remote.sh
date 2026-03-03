@@ -62,9 +62,29 @@ success "스킬 파일 설치 완료"
 # ── 5. 래퍼 스크립트 생성 ─────────────────────
 cat > "$SCRIPTS_DIR/glm-review" << 'WRAPPER_EOF'
 #!/usr/bin/env bash
-exec node --no-warnings --experimental-strip-types "$(dirname "$(readlink -f "$0")")/glm-review.ts" "$@"
+# POSIX-compatible symlink resolution (macOS/Linux/Git Bash)
+SOURCE="$0"
+while [ -L "$SOURCE" ]; do
+  DIR="$(cd -P "$(dirname "$SOURCE")" && pwd)"
+  SOURCE="$(readlink "$SOURCE")"
+  [[ "$SOURCE" != /* ]] && SOURCE="$DIR/$SOURCE"
+done
+SCRIPT_DIR="$(cd -P "$(dirname "$SOURCE")" && pwd)"
+exec node --no-warnings --experimental-strip-types "$SCRIPT_DIR/glm-review.ts" "$@"
 WRAPPER_EOF
 chmod +x "$SCRIPTS_DIR/glm-review"
+
+# Windows (Git Bash / MSYS2) 감지 시 .cmd 래퍼 추가 생성
+case "$(uname -s)" in
+  MINGW*|MSYS*|CYGWIN*)
+    cat > "$SCRIPTS_DIR/glm-review.cmd" << 'CMD_EOF'
+@echo off
+node --no-warnings --experimental-strip-types "%~dp0glm-review.ts" %*
+CMD_EOF
+    cp "$SCRIPTS_DIR/glm-review.cmd" "$BIN_DIR/glm-review.cmd" 2>/dev/null || true
+    success ".cmd 래퍼 생성 완료 (Windows CLI용)"
+    ;;
+esac
 
 # ── 6. PATH 심링크 ───────────────────────────
 ln -sf "$SCRIPTS_DIR/glm-review" "$BIN_DIR/glm-review"

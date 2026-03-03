@@ -4,15 +4,42 @@ GLM-5 기반 코드 리뷰 CLI + [Claude Code](https://claude.ai/code) `/rr` 스
 
 커밋 전에 `/rr` 한 줄이면 GLM-5가 코드를 리뷰하고, Claude가 검증 후 수정까지 해줍니다.
 
-## 원클릭 설치
+## 설치
+
+### Linux / macOS / WSL2
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/dgk-dev/glm-review/main/install-remote.sh | bash
 ```
 
+### Windows (PowerShell)
+
+```powershell
+irm https://raw.githubusercontent.com/dgk-dev/glm-review/main/install.ps1 | iex
+```
+
+### 소스에서 설치 (개발용)
+
+```bash
+git clone https://github.com/dgk-dev/glm-review.git
+cd glm-review
+./install.sh           # 파일 복사
+./install.sh --dev     # 심링크 (실시간 반영)
+```
+
 **필요 조건:**
 - Node.js v22+ (`node --version`으로 확인)
 - [Z.AI](https://z.ai) Coding Plan + API 키 (`ZAI_API_KEY` 환경변수)
+
+### 플랫폼 지원
+
+| 플랫폼 | 설치 | Claude Code /rr | CLI 직접 |
+|--------|------|----------------|---------|
+| Linux | `curl \| bash` | bash 래퍼 | bash 래퍼 |
+| macOS (Intel/ARM) | `curl \| bash` | bash 래퍼 | bash 래퍼 |
+| WSL2 | `curl \| bash` | bash 래퍼 | bash 래퍼 |
+| Windows (PowerShell) | `irm \| iex` | bash 래퍼 | .cmd 래퍼 |
+| Windows (Git Bash) | `./install.sh` | bash 래퍼 | .cmd 래퍼 |
 
 ## 사용법
 
