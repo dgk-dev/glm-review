@@ -55,7 +55,7 @@ Write-Ok "스킬 파일 설치 완료 (/rr + /rrr)"
 
 # 5. bash 래퍼 생성 (Claude Code 내부용 — Git Bash 사용)
 $bashWrapper = Join-Path $SCRIPTS_DIR "glm-review"
-@'
+$bashContent = @'
 #!/usr/bin/env bash
 # POSIX-compatible symlink resolution (macOS/Linux/Git Bash)
 SOURCE="$0"
@@ -66,7 +66,9 @@ while [ -L "$SOURCE" ]; do
 done
 SCRIPT_DIR="$(cd -P "$(dirname "$SOURCE")" && pwd)"
 exec node --no-warnings --experimental-strip-types "$SCRIPT_DIR/glm-review.ts" "$@"
-'@ | Set-Content -Path $bashWrapper -Encoding UTF8
+'@
+# PowerShell 5.1의 -Encoding UTF8은 BOM을 추가하여 bash shebang이 깨짐
+[System.IO.File]::WriteAllText($bashWrapper, $bashContent, [System.Text.UTF8Encoding]::new($false))
 
 # 6. .cmd 래퍼 생성 (Windows CLI 직접 실행용)
 $cmdWrapper = Join-Path $SCRIPTS_DIR "glm-review.cmd"
