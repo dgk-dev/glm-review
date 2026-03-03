@@ -25,7 +25,16 @@ GLM-5 (744B) 모델로 현재 변경사항을 깊이 있게 코드 리뷰한다.
 
 `glm-review --model glm-5` CLI를 **반드시 `run_in_background=true` + `dangerouslyDisableSandbox=true`** 로 실행한다.
 
-### 1. 사전 확인 (선택)
+### 1. 세션 컨텍스트 감지 (리뷰 실행 전 필수)
+
+1. 이번 세션에서 수정/생성한 파일 목록을 정리
+2. 해당 파일들이 이미 커밋되었는지 확인 (`git status`)
+3. 모드 자동 결정:
+   - **커밋 완료** → `--mode commit --files file1 file2`
+   - **미커밋 (다른 세션 파일도 uncommitted)** → `--files file1 file2` (이 세션 파일만 필터)
+   - **미커밋 (이 세션만 작업 중)** → 기본 모드 그대로 (`--files` 불필요)
+
+### 2. 사전 확인 (선택)
 
 헬스 체크로 API 연결 확인:
 
@@ -33,7 +42,7 @@ GLM-5 (744B) 모델로 현재 변경사항을 깊이 있게 코드 리뷰한다.
 glm-review --model glm-5 --health
 ```
 
-### 2. 리뷰 실행
+### 3. 리뷰 실행
 
 ```bash
 # 기본 리뷰 (uncommitted 변경사항)
@@ -42,6 +51,12 @@ glm-review --model glm-5
 # 모드 지정
 glm-review --model glm-5 --mode staged
 glm-review --model glm-5 --mode pr
+
+# 특정 파일만 리뷰
+glm-review --model glm-5 --files src/a.tsx src/b.ts
+
+# 커밋된 변경 + 특정 파일
+glm-review --model glm-5 --mode commit --files src/a.tsx src/b.ts
 
 # 커스텀 인스트럭션 (positional 인자)
 glm-review --model glm-5 "보안 취약점과 SQL 인젝션 집중 검토"
@@ -57,7 +72,7 @@ glm-review --model glm-5 --mode staged "타입 안전성 집중"
 - 빠른 리뷰 원할 시 → `--no-thinking` 추가 (thinking mode 비활성화, 속도 향상)
 - **모델 고정**: 항상 `--model glm-5` 포함
 
-### 3. 백그라운드 실행 패턴 (필수)
+### 4. 백그라운드 실행 패턴 (필수)
 
 ```
 Bash tool 호출:
@@ -66,7 +81,7 @@ Bash tool 호출:
   dangerouslyDisableSandbox: true
 ```
 
-### 4. 실행 후 즉시 턴 종료
+### 5. 실행 후 즉시 턴 종료
 
 백그라운드 실행 직후 사용자에게 안내하고 **즉시 턴을 종료**한다:
 
@@ -74,7 +89,7 @@ Bash tool 호출:
 
 자동 완료 알림이 오면 **검증 + 수정 단계**를 진행한다.
 
-### 5. 검증 + 수정 (완료 알림 후 필수)
+### 6. 검증 + 수정 (완료 알림 후 필수)
 
 /rr과 동일한 검증 + 수정 프로세스를 따른다:
 

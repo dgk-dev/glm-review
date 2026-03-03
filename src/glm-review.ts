@@ -21,6 +21,7 @@ interface CliOptions {
   health: boolean;
   help: boolean;
   customInstructions: string;
+  files: string[];
 }
 
 interface FileChange {
@@ -98,6 +99,7 @@ function parseArgs(argv: string[]): CliOptions {
     health: false,
     help: false,
     customInstructions: "",
+    files: [],
   };
 
   const positionals: string[] = [];
@@ -123,6 +125,13 @@ function parseArgs(argv: string[]): CliOptions {
       case "--health":
         opts.health = true;
         break;
+      case "--files":
+        i++;
+        while (i < argv.length && !argv[i].startsWith("--")) {
+          opts.files.push(argv[i]);
+          i++;
+        }
+        continue;
       case "--help":
       case "-h":
         opts.help = true;
@@ -167,6 +176,7 @@ glm-review — Z.AI 코드 리뷰 CLI
                        glm-5          유료, 200K context, 더 깊은 리뷰
   --ref <hash>       특정 커밋 해시 (--mode commit과 함께)
   --base <branch>    base branch (기본: main)
+  --files <paths>    특정 파일만 리뷰 (공백 구분, 다음 --플래그 전까지)
   --no-thinking      thinking mode 비활성화
   --health           API 키 + 연결 확인
   --help, -h         이 도움말 출력
@@ -180,6 +190,8 @@ glm-review — Z.AI 코드 리뷰 CLI
   glm-review --mode pr
   glm-review --mode commit --ref abc1234
   glm-review --mode staged "보안 취약점 집중 리뷰해줘"
+  glm-review --files src/a.tsx src/b.ts
+  glm-review --mode commit --files src/a.tsx src/b.ts
   glm-review --health
 `.trim());
 }
@@ -195,34 +207,36 @@ function runGit(args: string[]): string {
 }
 
 function getDiff(opts: CliOptions): string {
+  const fileSuffix = opts.files.length > 0 ? ["--", ...opts.files] : [];
   switch (opts.mode) {
     case "uncommitted":
-      return runGit(["diff", "HEAD"]);
+      return runGit(["diff", "HEAD", ...fileSuffix]);
     case "staged":
-      return runGit(["diff", "--cached"]);
+      return runGit(["diff", "--cached", ...fileSuffix]);
     case "pr":
-      return runGit(["diff", `${opts.base}...HEAD`]);
+      return runGit(["diff", `${opts.base}...HEAD`, ...fileSuffix]);
     case "commit":
-      return runGit(["diff", `${opts.ref}~1..${opts.ref}`]);
+      return runGit(["diff", `${opts.ref}~1..${opts.ref}`, ...fileSuffix]);
     default:
       throw new Error(`알 수 없는 모드: ${opts.mode}`);
   }
 }
 
 function getFileChanges(opts: CliOptions): FileChange[] {
+  const fileSuffix = opts.files.length > 0 ? ["--", ...opts.files] : [];
   let nameStatusArgs: string[];
   switch (opts.mode) {
     case "uncommitted":
-      nameStatusArgs = ["diff", "--name-status", "HEAD"];
+      nameStatusArgs = ["diff", "--name-status", "HEAD", ...fileSuffix];
       break;
     case "staged":
-      nameStatusArgs = ["diff", "--name-status", "--cached"];
+      nameStatusArgs = ["diff", "--name-status", "--cached", ...fileSuffix];
       break;
     case "pr":
-      nameStatusArgs = ["diff", "--name-status", `${opts.base}...HEAD`];
+      nameStatusArgs = ["diff", "--name-status", `${opts.base}...HEAD`, ...fileSuffix];
       break;
     case "commit":
-      nameStatusArgs = ["diff", "--name-status", `${opts.ref}~1..${opts.ref}`];
+      nameStatusArgs = ["diff", "--name-status", `${opts.ref}~1..${opts.ref}`, ...fileSuffix];
       break;
     default:
       return [];
