@@ -6,6 +6,7 @@ $ErrorActionPreference = "Stop"
 
 $REPO = "https://github.com/dgk-dev/glm-review.git"
 $SKILL_DIR = Join-Path $env:USERPROFILE ".claude\skills\rr"
+$SKILL_RRR_DIR = Join-Path $env:USERPROFILE ".claude\skills\rrr"
 $SCRIPTS_DIR = Join-Path $SKILL_DIR "scripts"
 
 function Write-Info($msg) { Write-Host "[glm-review] $msg" -ForegroundColor Blue }
@@ -46,9 +47,11 @@ Write-Info "Claude Code /rr 스킬 설치 중..."
 if (Test-Path $SKILL_DIR) { Remove-Item $SKILL_DIR -Recurse -Force }
 New-Item -ItemType Directory -Path $SCRIPTS_DIR -Force | Out-Null
 
+New-Item -ItemType Directory -Path $SKILL_RRR_DIR -Force | Out-Null
 Copy-Item (Join-Path $tmpDir "SKILL.md") (Join-Path $SKILL_DIR "SKILL.md")
+Copy-Item (Join-Path $tmpDir "SKILL-rrr.md") (Join-Path $SKILL_RRR_DIR "SKILL.md")
 Copy-Item (Join-Path $tmpDir "src\glm-review.ts") (Join-Path $SCRIPTS_DIR "glm-review.ts")
-Write-Ok "스킬 파일 설치 완료"
+Write-Ok "스킬 파일 설치 완료 (/rr + /rrr)"
 
 # 5. bash 래퍼 생성 (Claude Code 내부용 — Git Bash 사용)
 $bashWrapper = Join-Path $SCRIPTS_DIR "glm-review"

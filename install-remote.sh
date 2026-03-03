@@ -8,6 +8,7 @@ set -euo pipefail
 
 REPO="https://github.com/dgk-dev/glm-review.git"
 SKILL_DIR="$HOME/.claude/skills/rr"
+SKILL_RRR_DIR="$HOME/.claude/skills/rrr"
 BIN_DIR="$HOME/.local/bin"
 SCRIPTS_DIR="$SKILL_DIR/scripts"
 
@@ -55,9 +56,11 @@ info "Claude Code /rr 스킬 설치 중..."
 rm -rf "$SKILL_DIR"
 mkdir -p "$SKILL_DIR" "$SCRIPTS_DIR" "$BIN_DIR"
 
+mkdir -p "$SKILL_RRR_DIR"
 cp "$TMPDIR/glm-review/SKILL.md" "$SKILL_DIR/SKILL.md"
+cp "$TMPDIR/glm-review/SKILL-rrr.md" "$SKILL_RRR_DIR/SKILL.md"
 cp "$TMPDIR/glm-review/src/glm-review.ts" "$SCRIPTS_DIR/glm-review.ts"
-success "스킬 파일 설치 완료"
+success "스킬 파일 설치 완료 (/rr + /rrr)"
 
 # ── 5. 래퍼 스크립트 생성 ─────────────────────
 cat > "$SCRIPTS_DIR/glm-review" << 'WRAPPER_EOF'

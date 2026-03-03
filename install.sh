@@ -8,6 +8,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SKILL_DIR="$HOME/.claude/skills/rr"
+SKILL_RRR_DIR="$HOME/.claude/skills/rrr"
 BIN_DIR="$HOME/.local/bin"
 SCRIPTS_DIR="$SKILL_DIR/scripts"
 
@@ -57,12 +58,15 @@ success "디렉토리 준비 완료"
 
 # ── 3. SKILL.md 설치 ─────────────────────────
 info "SKILL.md 설치 중..."
+mkdir -p "$SKILL_RRR_DIR"
 if [[ "$DEV_MODE" == true ]]; then
   ln -sf "$SCRIPT_DIR/SKILL.md" "$SKILL_DIR/SKILL.md"
-  success "SKILL.md 심링크 생성 (dev 모드): $SKILL_DIR/SKILL.md -> $SCRIPT_DIR/SKILL.md"
+  ln -sf "$SCRIPT_DIR/SKILL-rrr.md" "$SKILL_RRR_DIR/SKILL.md"
+  success "SKILL.md 심링크 생성 (dev 모드): /rr + /rrr"
 else
   cp "$SCRIPT_DIR/SKILL.md" "$SKILL_DIR/SKILL.md"
-  success "SKILL.md 복사 완료: $SKILL_DIR/SKILL.md"
+  cp "$SCRIPT_DIR/SKILL-rrr.md" "$SKILL_RRR_DIR/SKILL.md"
+  success "SKILL.md 복사 완료: /rr + /rrr"
 fi
 
 # ── 4. glm-review.ts 설치 ────────────────────
