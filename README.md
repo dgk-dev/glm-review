@@ -88,11 +88,12 @@ glm-review --health                 # API 연결 확인
 [Z.AI](https://z.ai)에서 Coding Plan을 구독하고 API 키를 발급받으세요.
 
 ```bash
-# 현재 셸
-export ZAI_API_KEY='your-api-key'
+# ~/.claude/.env.local에 추가 (추천 — 전 플랫폼 공통, glm-review가 자동 로드)
+echo "ZAI_API_KEY='your-api-key'" >> ~/.claude/.env.local
 
-# 영구 설정
-echo "export ZAI_API_KEY='your-key'" >> ~/.zshrc
+# 또는 셸 환경변수로 직접 설정
+export ZAI_API_KEY='your-api-key'          # Linux/macOS/WSL2
+$env:ZAI_API_KEY = 'your-api-key'          # Windows PowerShell
 ```
 
 ## 기술 스택
