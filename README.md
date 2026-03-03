@@ -111,6 +111,40 @@ $env:ZAI_API_KEY = 'your-api-key'          # Windows PowerShell
 - 특정 체크리스트에 한정하지 않고 코드의 모든 측면을 깊이 있게 검토
 - 문제 지적 시 근거(공식 문서, 스펙, 모범사례) 함께 제시
 
+## Contributing
+
+기여를 환영합니다! 버그 리포트, 기능 제안, 코드 기여 모두 가능합니다.
+
+### 버그 리포트 / 기능 제안
+
+[GitHub Issues](https://github.com/dgk-dev/glm-review/issues)에 올려주세요.
+
+### 코드 기여 (Pull Request)
+
+1. 이 저장소를 **Fork** 합니다
+2. 브랜치를 만듭니다: `git checkout -b feat/my-feature`
+3. 변경 후 커밋합니다: `git commit -m "feat: add my feature"`
+4. Push 합니다: `git push origin feat/my-feature`
+5. GitHub에서 **Pull Request**를 생성합니다
+
+### 기여 아이디어
+
+- 다른 AI provider 지원 (Groq, OpenRouter 등)
+- 리뷰 결과 포맷 커스터마이징
+- 영어/다국어 시스템 프롬프트
+- CI/CD 연동 (GitHub Actions에서 자동 리뷰)
+
+### 개발 환경 세팅
+
+```bash
+git clone https://github.com/dgk-dev/glm-review.git
+cd glm-review
+./install.sh --dev     # 심링크 모드 — 수정이 즉시 반영
+glm-review --health    # 동작 확인
+```
+
+npm 의존성이 없으므로 `npm install`이 필요 없습니다.
+
 ## License
 
-MIT
+[MIT](https://opensource.org/licenses/MIT) — 자유롭게 사용, 수정, 재배포 가능합니다.
