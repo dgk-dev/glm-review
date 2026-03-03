@@ -1,0 +1,10 @@
+{
+  "name": "glm-review",
+  "version": "1.0.0",
+  "description": "GLM-5 powered code review CLI for Claude Code",
+  "type": "module",
+  "license": "MIT",
+  "scripts": {
+    "health": "node --experimental-strip-types src/glm-review.ts --health"
+  }
+}
