@@ -29,7 +29,16 @@ GLM-5 (744B) 모델로 현재 변경사항을 깊이 있게 코드 리뷰한다.
 
 1. 이번 세션에서 수정/생성한 파일 목록을 정리
 2. 해당 파일들이 이미 커밋되었는지 확인 (`git status`)
-3. 모드 자동 결정:
+3. **untracked (신규) 파일 처리** — `glm-review`는 `git diff` 기반이므로 untracked 파일은 diff에 안 잡힘:
+   ```bash
+   # 신규 파일을 git diff에 노출시키기 (내용 staging 없이 추적만 등록)
+   git add -N <untracked-session-files...>
+   ```
+   리뷰 완료 후 반드시 해제:
+   ```bash
+   git reset <untracked-session-files...>
+   ```
+4. 모드 자동 결정:
    - **커밋 완료** → `--mode commit --files file1 file2`
    - **미커밋 (다른 세션 파일도 uncommitted)** → `--files file1 file2` (이 세션 파일만 필터)
    - **미커밋 (이 세션만 작업 중)** → 기본 모드 그대로 (`--files` 불필요)
@@ -102,4 +111,4 @@ Bash tool 호출:
 
 ## 버전
 
-1.0.0
+1.1.0
