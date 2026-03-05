@@ -1,8 +1,13 @@
 # glm-review
 
-GLM-5 기반 코드 리뷰 CLI + [Claude Code](https://claude.ai/code) `/rr` 스킬.
+Z.AI 모델 기반 코드 리뷰 CLI + [Claude Code](https://claude.ai/code) `/rr`, `/rrr` 스킬.
 
-커밋 전에 `/rr` 한 줄이면 GLM-5가 코드를 리뷰하고, Claude가 검증 후 수정까지 해줍니다.
+커밋 전에 `/rr` 한 줄이면 Z.AI가 코드를 리뷰하고, Claude가 검증 후 수정까지 해줍니다.
+
+| 스킬 | 모델 | 비용 | 설명 |
+|------|------|------|------|
+| `/rr` | glm-4.7-flash | 무료 | 빠른 코드 리뷰 (기본) |
+| `/rrr` | GLM-5 (744B) | 유료 | 더 깊고 정밀한 리뷰 |
 
 ## 설치
 
@@ -33,8 +38,8 @@ cd glm-review
 
 ### 플랫폼 지원
 
-| 플랫폼 | 설치 | Claude Code /rr | CLI 직접 |
-|--------|------|----------------|---------|
+| 플랫폼 | 설치 | Claude Code /rr, /rrr | CLI 직접 |
+|--------|------|----------------------|---------|
 | Linux | `curl \| bash` | bash 래퍼 | bash 래퍼 |
 | macOS (Intel/ARM) | `curl \| bash` | bash 래퍼 | bash 래퍼 |
 | WSL2 | `curl \| bash` | bash 래퍼 | bash 래퍼 |
@@ -46,21 +51,29 @@ cd glm-review
 ### Claude Code에서 (추천)
 
 ```
+# /rr — glm-4.7-flash (무료, 기본)
 /rr                    # uncommitted 변경사항 리뷰
 /rr staged             # staged 변경사항만
 /rr pr                 # PR diff 리뷰
 /rr 보안 집중           # 커스텀 지시사항 추가
+
+# /rrr — GLM-5 (유료, 더 깊은 리뷰)
+/rrr                   # GLM-5로 리뷰
+/rrr staged            # staged 변경사항만
+/rrr pr                # PR diff 리뷰
+/rrr 보안 집중          # 커스텀 지시사항 추가
 ```
 
-Claude가 GLM-5 리뷰를 백그라운드로 실행한 뒤, 결과를 검증하고 유효한 이슈를 직접 수정합니다.
+Claude가 Z.AI 리뷰를 백그라운드로 실행한 뒤, 결과를 검증하고 유효한 이슈를 직접 수정합니다.
 
 ### CLI 직접 실행
 
 ```bash
-glm-review                          # uncommitted 변경사항
+glm-review                          # uncommitted 변경사항 (glm-4.7-flash)
 glm-review --mode staged            # staged만
 glm-review --mode pr                # main 대비 PR
 glm-review --mode commit --ref abc  # 특정 커밋
+glm-review --files src/a.tsx src/b.ts  # 특정 파일만 리뷰
 glm-review "보안 취약점 집중"         # 커스텀 지시
 glm-review --model glm-5            # GLM-5로 더 깊은 리뷰 (유료)
 glm-review --no-thinking            # 빠른 리뷰 (thinking 비활성화)
@@ -70,16 +83,18 @@ glm-review --health                 # API 연결 확인
 ## 동작 원리
 
 ```
-/rr 실행
+/rr 또는 /rrr 실행
   │
   ├─ glm-review CLI (백그라운드)
   │   ├─ git diff 수집
   │   ├─ 변경 파일 전체 읽기
-  │   ├─ GLM-5 API 호출 (스트리밍, Thinking mode)
+  │   ├─ Z.AI API 호출 (스트리밍, Thinking mode)
+  │   │   ├─ /rr  → glm-4.7-flash (무료)
+  │   │   └─ /rrr → GLM-5 (유료)
   │   └─ 한국어 리뷰 보고서 출력
   │
   └─ Claude (완료 후)
-      ├─ GLM-5 리뷰 결과 검증 (오탐 필터링)
+      ├─ 리뷰 결과 검증 (오탐 필터링)
       ├─ 유효 이슈 보고 (Critical/Warning/Suggestion)
       └─ 수정 실행
 ```
