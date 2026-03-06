@@ -1,6 +1,6 @@
 {
   "name": "glm-review",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "GLM-5 powered code review CLI for Claude Code",
   "type": "module",
   "license": "MIT",
