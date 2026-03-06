@@ -4,6 +4,33 @@
   "description": "GLM-5 powered code review CLI for Claude Code",
   "type": "module",
   "license": "MIT",
+  "bin": {
+    "glm-review": "./bin/glm-review.mjs"
+  },
+  "files": [
+    "bin/",
+    "src/",
+    "SKILL.md",
+    "SKILL-rrr.md",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "keywords": [
+    "claude-code",
+    "code-review",
+    "glm",
+    "zhipu",
+    "ai",
+    "cli",
+    "agent-skills"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/dgk-dev/glm-review.git"
+  },
+  "author": "dgk-dev",
   "scripts": {
     "health": "node --experimental-strip-types src/glm-review.ts --health"
   }
